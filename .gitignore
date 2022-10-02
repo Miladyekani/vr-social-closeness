@@ -154,3 +154,5 @@ cython_debug/
 # Added manually
 data/
 results/
+utils/dirs.json
+utils/dirs.json
