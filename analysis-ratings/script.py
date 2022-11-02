@@ -9,7 +9,7 @@ Created on Fri Sep 30 18:29:32 2022
 import os
 os.chdir('C:/Users/milad/Desktop/D/vr-social-closeness')
 from glob import glob
-from subject import Subject
+from utils.subject import Subject
 import numpy as np 
 import pandas as pd 
 
@@ -136,11 +136,75 @@ generate_scatter_plots(df1, df3, ["synch", "random"])
 generate_scatter_plots(df2, df3, ["unsynch", "random"])
 
 
+#%%x_i = 100_i - 70_i
+Sub_Address = []  
+
+
+normalized_rate = []
+emotion = []
+character = []
+intensity = [] 
+phase = [] 
+group = [] 
+sub_number = []
+phase = []
+
+
+
+group_name = ['synch_folder','unsynch_folder','unsynch_random_folder']
+
+
+
+for study_group in group_name: 
+     Data_Root =  os.path.join('C:\\','Users','milad','Desktop','D',
+                               'Thesis_Phd','data','raw_data', study_group)
+     Sub_Address.extend( glob(os.path.join(Data_Root,'*')))
+     
+subjects = [Subject(path ) for path in  Sub_Address]
+
+
+for i,sb in enumerate(subjects):
+  sb.loadTaskResponses()
+  for stimulus  in Subject.movieTypes:
+     print('the stimulus is ' , stimulus)
+     ##### pre ratings
+     sub_number.append(i)
+     group.append(sb.group)
+     phase.append(1)
+     emotion.append(stimulus.split('_')[0])
+     intensity.append(stimulus.split('_')[1])
+     character.append(stimulus.split('_')[2])
+     compliment_emotion = stimulus.split('_')[0]+'_'+'100'+'_'+stimulus.split('_')[2]
+     delta_rat = sum(np.abs(sb.respPre[stimulus]))-sum(np.abs(sb.respPre[compliment_emotion]))     
+     normalized_rate.append(delta_rat)
+     ###### post ratings 
+     sub_number.append(i)
+     group.append(sb.group)
+     phase.append(2)
+     emotion.append(stimulus.split('_')[0])
+     intensity.append(stimulus.split('_')[1])
+     character.append(stimulus.split('_')[2])
+     compliment_emotion = stimulus.split('_')[0]+'_'+'100'+'_'+stimulus.split('_')[2]
+     delta_rat= sum(np.abs(sb.respPost[stimulus]))- sum(np.abs(sb.respPost[compliment_emotion]))     
+     normalized_rate.append(delta_rat)
+     
+
+
+# create a dataframe 
+
+
+df = pd.DataFrame({'mean_rate' : normalized_rate  , 'emotion':emotion,'character':character ,
+'intensity':intensity ,'group': group ,'sub_number' : sub_number , 'phase' : phase})
+
+df['mname'] = df.emotion + "-" + df.intensity + "-" + df.character
+
+df1 = df[df.group == 'synch_folder']
+df2 = df[df.group == 'unsynch_folder']
+df3 = df[df.group == 'unsynch_random_folder']
+
+
 #%%
-# milad transformation
-
-
-
+# Milad transformation x_i = x_i/(70_i+100_i)
 Sub_Address = []  
 
 
@@ -214,6 +278,74 @@ df1 = df[df.group == 'synch_folder']
 df2 = df[df.group == 'unsynch_folder']
 df3 = df[df.group == 'unsynch_random_folder']
 
+#%%
+# Milad transformation x_i = x_i/(100_i)
+Sub_Address = []  
+
+
+normalized_rate = []
+emotion = []
+character = []
+intensity = [] 
+phase = [] 
+group = [] 
+sub_number = []
+phase = []
+
+
+
+group_name = ['synch_folder','unsynch_folder','unsynch_random_folder']
+
+
+
+for study_group in group_name: 
+     Data_Root =  os.path.join('C:\\','Users','milad','Desktop','D',
+                               'Thesis_Phd','data','raw_data', study_group)
+     Sub_Address.extend( glob(os.path.join(Data_Root,'*')))
+     
+subjects = [Subject(path ) for path in  Sub_Address]
+
+
+for i,sb in enumerate(subjects):
+  sb.loadTaskResponses()
+  for stimulus  in Subject.movieTypes:
+     print('the stimulus is ' , stimulus)
+     ##### pre ratings
+     sub_number.append(i)
+     group.append(sb.group)
+     phase.append(1)
+     emotion.append(stimulus.split('_')[0])
+     intensity.append(stimulus.split('_')[1])
+     character.append(stimulus.split('_')[2])
+     emotion_100 = stimulus.split('_')[0]+'_'+'100'+'_'+stimulus.split('_')[2]
+     rate_100 = sum(np.abs(sb.respPre[emotion_100]))     
+     rate = sum(np.abs(sb.respPre[stimulus]))/rate_100
+     normalized_rate.append(rate)
+     ###### post ratings 
+     sub_number.append(i)
+     group.append(sb.group)
+     phase.append(2)
+     emotion.append(stimulus.split('_')[0])
+     intensity.append(stimulus.split('_')[1])
+     character.append(stimulus.split('_')[2])
+     emotion_100= stimulus.split('_')[0]+'_'+'100'+'_'+stimulus.split('_')[2]
+     rate_100 = sum(np.abs(sb.respPost[emotion_100]))     
+     rate = sum(np.abs(sb.respPost[stimulus]))/rate_100
+     normalized_rate.append(rate)
+     
+
+
+# create a dataframe 
+
+
+df = pd.DataFrame({'mean_rate' : normalized_rate  , 'emotion':emotion,'character':character ,
+'intensity':intensity ,'group': group ,'sub_number' : sub_number , 'phase' : phase})
+
+df['mname'] = df.emotion + "-" + df.intensity + "-" + df.character
+
+df1 = df[df.group == 'synch_folder']
+df2 = df[df.group == 'unsynch_folder']
+df3 = df[df.group == 'unsynch_random_folder']
 
 #%% raw data without transofrmation 
 
@@ -274,11 +406,25 @@ df1 = df[df.group == 'synch_folder']
 df2 = df[df.group == 'unsynch_folder']
 df3 = df[df.group == 'unsynch_random_folder']
 
+
 #%%
+fig, axs = plt.subplots(1, 1, figsize=(40, 9), sharey=True)
+df_diff = df[df.phase==2]
+df_diff.loc[:, 'mean_rate'] = (df_diff.mean_rate.to_numpy() - 
+                     df[df.phase==1].mean_rate.to_numpy())
+
+sns.barplot(data=df_diff, x="mname", y="mean_rate", hue="group")
+#sns.swarmplot(data=df_diff, x="mname", y="mean_rate", hue="group",size=5, dodge=True)
+# (df[df.phase==2].groupby(["mname", "group"]).mean()['mean_rate'] - 
+#  df[df.phase==1].groupby(["mname", "group"]).mean()['mean_rate']).unstack().plot.bar(ax=axs)
+# axs.legend(["random", "synch", "unsynch"], frameon=False, fontsize=20)
+
+#%%
+
 fig, axs = plt.subplots(1, 1, figsize=(16, 9), sharey=True)
 (df[df.phase==2].groupby(["mname", "group"]).mean()['mean_rate'] - 
  df[df.phase==1].groupby(["mname", "group"]).mean()['mean_rate']).unstack().plot.bar(ax=axs)
-axs.legend(["random", "synch", "unsynch"], frameon=False, fontsize=20)
+axs.legend(["synch", "partially_synch", "unsynch"], frameon=False, fontsize=20)
 
 
 #%%
